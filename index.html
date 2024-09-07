@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamlabs OBS Chat</title>
+    <style>
+        /* Chat kutusu */
+        #chat-box {
+            width: 400px;
+            height: 600px;
+            background: rgba(0, 0, 0, 0.75);
+            border-radius: 10px;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        /* Mesaj kutusu */
+        #messages {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            opacity: 0;
+            animation: slideIn 2s forwards;
+        }
+
+        /* Yeni takipçilerin isimleri için beyaz ve kızıl alev animasyonu */
+        .follower span.username {
+            color: white;
+            position: relative;
+        }
+
+        .follower span.username::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent, rgba(255, 0, 0, 0.5));
+            animation: flame 1.5s infinite;
+        }
+
+        /* Aboneler için altın sarısı ve turuncu alev animasyonu */
+        .subscriber span.username {
+            color: gold;
+            position: relative;
+        }
+
+        .subscriber span.username::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent, rgba(255, 165, 0, 0.5));
+            animation: flame 1.5s infinite;
+        }
+
+        /* Takipte olanlar için alev kızılı ve yanıp sönme efekti */
+        .active-follower span.username {
+            color: #FF4500; /* Alev Kızılı */
+            animation: blink 1s infinite;
+        }
+
+        /* Yanıp sönme animasyonu */
+        @keyframes blink {
+            0%, 50% {
+                opacity: 1;
+            }
+            25%, 75% {
+                opacity: 0;
+            }
+        }
+
+        /* Alev animasyonu */
+        @keyframes flame {
+            0% { opacity: 0.5; transform: translateY(10px); }
+            50% { opacity: 1; transform: translateY(0px); }
+            100% { opacity: 0.5; transform: translateY(10px); }
+        }
+
+        /* Mesajların kayarak gelmesi */
+        @keyframes slideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-100%);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Mesaj içeriği */
+        .message .content {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-box">
+        <div id="messages">
+            <!-- Mesajlar burada görünecek -->
+        </div>
+    </div>
+
+    <script>
+        // WebSocket API tokenini kullanarak Streamlabs'e bağlanma
+        const token = 'F273E6D5BD3BF8558704746925609FE4086C0BE4E254E10A66B64C5F24FEF9D8A9DED022E134137FB567D23D67EEA502F9E3761C05DA6EEE57F34820142078AFEC3DC4EA8FB44768E2CB56063E76D84ADE14A8AECAACE73FF1BEE302210E622A7D4DDDB024C19E0D7F7B19517B1DB417F0DE841E9506F4245728B96D52';
+        const socketUrl = `wss://sockets.streamlabs.com/socket.io/?token=${token}`;
+
+        // WebSocket bağlantısı kurma
+        const socket = new WebSocket(socketUrl);
+        const chatBox = document.getElementById('messages');
+
+        // WebSocket bağlantısı açıldığında
+        socket.onopen = function() {
+            console.log("WebSocket bağlantısı başarılı.");
+        };
+
+        // WebSocket mesajları alındığında
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+
+            if (data.event === "message") {
+                const messageElement = document.createElement("div");
+                messageElement.classList.add("message");
+
+                // Kullanıcı türüne göre stil belirleme
+                if (data.userType === "follower") {
+                    messageElement.classList.add("follower");
+                } else if (data.userType === "subscriber") {
+                    messageElement.classList.add("subscriber");
+                } else if (data.userType === "active-follower") {
+                    messageElement.classList.add("active-follower");
+                }
+
+                // Kullanıcı adı ve mesajı ekleme
+                messageElement.innerHTML = `<span class="username">${data.username}</span>: <span class="content">${data.message}</span>`;
+                
+                chatBox.appendChild(messageElement);
+                chatBox.scrollTop = chatBox.scrollHeight; // Otomatik kaydırma
+            }
+        };
+
+        // WebSocket hatası olursa
+        socket.onerror = function(error) {
+            console.error("WebSocket Hatası:", error);
+        };
+
+        // WebSocket bağlantısı kapandığında
+        socket.onclose = function() {
+            console.log("WebSocket bağlantısı kapandı.");
+        };
+    </script>
+</body>
+</html>
